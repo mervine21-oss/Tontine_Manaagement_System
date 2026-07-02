@@ -1,0 +1,96 @@
+@startuml Global_Tontine_UseCase
+
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam backgroundColor white
+skinparam handwritten false
+
+skinparam actor {
+    BorderColor black
+    BackgroundColor white
+    FontColor black
+    FontStyle bold
+    FontSize 12
+}
+
+skinparam usecase {
+    BorderColor black
+    BackgroundColor white
+    FontColor black
+    FontSize 11
+    BorderThickness 1.5
+}
+
+skinparam arrow {
+    Color black
+    FontColor black
+    FontSize 10
+    Thickness 1
+}
+
+skinparam rectangle {
+    BorderColor black
+    BackgroundColor white
+    FontColor black
+    FontStyle bold
+    FontSize 13
+    BorderThickness 2
+}
+
+skinparam note {
+    BorderColor black
+    BackgroundColor white
+    FontColor black
+    FontSize 10
+}
+
+left to right direction
+
+actor "Group President\n(Administrator)" as President
+actor "Group Member" as Member
+actor "Platform Super-Admin" as SuperAdmin
+
+rectangle "Digital Tontine Management System" as System {
+
+    usecase "Create Unlimited\nGroups" as UC1
+    usecase "Configure Custom\nRules and Bylaws" as UC2
+    usecase "Manage Cycles\nand Members" as UC3
+    usecase "View Personal\nLedger" as UC4
+    usecase "Process Contribution\nPayment" as UC5
+    usecase "Monitor Platform\nMetrics" as UC6
+
+}
+
+President --> UC1 : initiates
+President --> UC2 : defines
+President --> UC3 : oversees
+
+Member --> UC5 : submits
+Member --> UC4 : consults
+
+SuperAdmin --> UC6 : audits
+
+UC2 .> UC1 : <<extend>>
+UC5 .> UC4 : <<include>>
+
+note bottom of UC1
+  Each group is fully isolated
+  under a unique UUID tenant
+  partition in the database.
+end note
+
+note bottom of UC5
+  Payments are processed via
+  MTN MoMo or Orange Money
+  asynchronous webhook pipeline.
+end note
+
+note bottom of UC6
+  Super-Admin monitors the
+  global transaction audit
+  ledger across all tenants.
+end note
+
+@enduml

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DigiTon — Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="navbar-brand">
+        <div class="logo">🏦</div>
+        <span>DigiTon</span>
+    </div>
+    <div class="navbar-right">
+        <div class="navbar-user">
+            <div class="avatar" id="user-avatar">?</div>
+            <span id="user-name">Loading...</span>
+        </div>
+        <button class="btn-logout" onclick="handleLogout()">Logout</button>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="page-header">
+        <div class="page-header-left">
+            <h2>My Groups</h2>
+            <p>Manage your tontine savings groups</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-secondary" onclick="openJoinModal()">🔗 Join Group</button>
+            <button class="btn btn-primary" onclick="openCreateModal()">+ Create Group</button>
+        </div>
+    </div>
+
+    <div id="alert-container"></div>
+
+    <div id="groups-container">
+        <div class="loading">
+            <div class="spinner"></div>
+            Loading your groups...
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="create-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">✨ Create New Group</h3>
+            <button class="modal-close" onclick="closeCreateModal()">✕</button>
+        </div>
+        <div id="create-alert"></div>
+        <form id="create-form">
+            <div class="form-group">
+                <label class="form-label">Group Name</label>
+                <input type="text" id="group_name" class="form-input" placeholder="IUC Savings Circle" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Maximum Members (2-100)</label>
+                <input type="number" id="max_members" class="form-input" placeholder="10" min="2" max="100" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Contribution Amount (XAF)</label>
+                <input type="number" id="contribution_amount" class="form-input" placeholder="5000" min="1" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Contribution Frequency</label>
+                <select id="contribution_frequency" class="form-input">
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly" selected>Monthly</option>
+                    <option value="bi_monthly">Bi-Monthly</option>
+                    <option value="annually">Annually</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Description (optional)</label>
+                <textarea id="description" class="form-input" rows="2" placeholder="What is this group for?"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" id="create-btn" onclick="handleCreateGroup()">Create Group</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay" id="join-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">🔗 Join a Group</h3>
+            <button class="modal-close" onclick="closeJoinModal()">✕</button>
+        </div>
+        <div id="join-alert"></div>
+        <p style="font-size:13px; color:#71717a; margin-bottom:16px">Enter the 8-character invite code shared by the group admin.</p>
+        <form id="join-form">
+            <div class="form-group">
+                <label class="form-label">Invite Code</label>
+                <input type="text" id="invite_code" class="form-input" placeholder="Y59A9GEK" maxlength="8" style="text-transform:uppercase; letter-spacing:6px; font-size:20px; font-weight:700; text-align:center" />
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeJoinModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" id="join-btn" onclick="handleJoinGroup()">Join Group</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+    var token = localStorage.getItem('token');
+    if (!token) {
+        window.location.href = 'http://localhost:8080/index.html';
+    }
+
+    var user = getUser();
+    document.getElementById('user-name').textContent = user.full_name || 'User';
+    document.getElementById('user-avatar').textContent = getInitials(user.full_name);
+
+    function navigateToGroup(groupId) {
+        console.log('navigateToGroup called with:', groupId);
+        if (!groupId) {
+            console.error('groupId is empty or undefined!');
+            return;
+        }
+        window.location.href = 'http://localhost:8080/group.html?id=' + groupId;
+    }
+
+    function loadGroups() {
+        var container = document.getElementById('groups-container');
+        container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading your groups...</div>';
+
+        groups.getAll().then(function(response) {
+            var groupList = response.data.groups || [];
+            console.log('Groups loaded:', groupList);
+
+            if (groupList.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="icon">🏦</div><h3>No groups yet</h3><p>Create a new group or join one using an invite code</p></div>';
+                return;
+            }
+
+            container.innerHTML = '<div class="cards-grid">' + groupList.map(function(group) {
+                console.log('Rendering group:', group);
+                return '<div class="group-card" onclick="navigateToGroup(\'' + group.id + '\')"><div class="group-card-header"><div><div class="group-card-title">' + group.group_name + '</div><div class="group-card-desc">' + (group.description || 'No description') + '</div></div><div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px">' + (group.is_admin ? '<span class="badge badge-admin">👑 Admin</span>' : '') + '<span class="badge ' + getBadgeClass(group.member_status) + '">' + group.member_status + '</span></div></div><div class="group-card-stats"><div class="group-card-stat"><span class="label">👥 Members</span><span class="value">' + group.current_member_count + ' / ' + group.max_members + '</span></div><div class="group-card-stat"><span class="label">💰 Contribution</span><span class="value">' + formatAmount(group.contribution_amount) + '</span></div><div class="group-card-stat"><span class="label">🔄 Frequency</span><span class="value" style="text-transform:capitalize">' + group.contribution_frequency + '</span></div><div class="group-card-stat"><span class="label">🪑 Available</span><span class="value">' + group.available_seats + ' seats</span></div></div><div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:' + Math.round((group.current_member_count / group.max_members) * 100) + '%"></div></div><div class="progress-label">' + Math.round((group.current_member_count / group.max_members) * 100) + '% capacity used</div></div></div>';
+            }).join('') + '</div>';
+        }).catch(function(error) {
+            container.innerHTML = '';
+            console.error('Failed to load groups:', error);
+            showAlert('alert-container', error.message, 'error');
+        });
+    }
+
+    function handleLogout() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = 'http://localhost:8080/index.html';
+    }
+
+    function openCreateModal() {
+        document.getElementById('create-modal').classList.add('active');
+        clearAlert('create-alert');
+    }
+
+    function closeCreateModal() {
+        document.getElementById('create-modal').classList.remove('active');
+        document.getElementById('create-form').reset();
+    }
+
+    function openJoinModal() {
+        document.getElementById('join-modal').classList.add('active');
+        clearAlert('join-alert');
+    }
+
+    function closeJoinModal() {
+        document.getElementById('join-modal').classList.remove('active');
+        document.getElementById('join-form').reset();
+    }
+
+    function handleCreateGroup() {
+        clearAlert('create-alert');
+
+        var button = document.getElementById('create-btn');
+        button.disabled = true;
+        button.textContent = 'Creating...';
+
+        groups.create({
+            group_name: document.getElementById('group_name').value,
+            max_members: parseInt(document.getElementById('max_members').value, 10),
+            contribution_amount: parseFloat(document.getElementById('contribution_amount').value),
+            contribution_frequency: document.getElementById('contribution_frequency').value,
+            description: document.getElementById('description').value
+        }).then(function() {
+            closeCreateModal();
+            showAlert('alert-container', '✅ Group created successfully!', 'success');
+            loadGroups();
+        }).catch(function(error) {
+            showAlert('create-alert', error.message, 'error');
+        }).finally(function() {
+            button.disabled = false;
+            button.textContent = 'Create Group';
+        });
+    }
+
+    function handleJoinGroup() {
+        clearAlert('join-alert');
+
+        var button = document.getElementById('join-btn');
+        button.disabled = true;
+        button.textContent = 'Joining...';
+
+        groups.join(document.getElementById('invite_code').value.trim()).then(function() {
+            closeJoinModal();
+            showAlert('alert-container', '✅ Joined group successfully!', 'success');
+            loadGroups();
+        }).catch(function(error) {
+            showAlert('join-alert', error.message, 'error');
+        }).finally(function() {
+            button.disabled = false;
+            button.textContent = 'Join Group';
+        });
+    }
+
+    loadGroups();
+</script>
+
+</body>
+</html>
+
+    // ==========================================================================
+    // JOIN GROUP
+    // ==========================================================================
+    const openJoinModal = () => {
+        document.getElementById('join-modal').classList.add('active')
+        clearAlert('join-alert')
+    }
+
+    const closeJoinModal = () => {
+        document.getElementById('join-modal').classList.remove('active')
+        document.getElementById('join-form').reset()
+    }
+
+    document.getElementById('join-form').addEventListener('submit', async (e) => {
+        e.preventDefault()
+        clearAlert('join-alert')
+
+        const btn = document.getElementById('join-btn')
+        btn.disabled = true
+        btn.textContent = 'Joining...'
+
+        try {
+            const result = await groups.join(
+                document.getElementById('invite_code').value.toUpperCase()
+            )
+            closeJoinModal()
+            showAlert('alert-container', `✅ Successfully joined ${result.data.group.group_name}!`, 'success')
+            loadGroups()
+        } catch (err) {
+            showAlert('join-alert', err.message, 'error')
+        } finally {
+            btn.disabled = false
+            btn.textContent = 'Join Group'
+        }
+    })
+</script>
+
+</body>
+</html>

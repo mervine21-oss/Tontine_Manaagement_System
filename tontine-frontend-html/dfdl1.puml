@@ -1,0 +1,83 @@
+@startuml Tontine_DFD_Level1
+
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam backgroundColor white
+skinparam handwritten false
+
+skinparam actor {
+    BorderColor black
+    BackgroundColor white
+    FontColor black
+    FontStyle bold
+    FontSize 12
+}
+
+skinparam component {
+    BorderColor black
+    BackgroundColor white
+    FontColor black
+    FontSize 11
+    BorderThickness 1.5
+    Style rounded
+}
+
+skinparam database {
+    BorderColor black
+    BackgroundColor white
+    FontColor black
+    FontSize 11
+    BorderThickness 1.5
+}
+
+skinparam arrow {
+    Color black
+    FontColor black
+    FontSize 10
+    Thickness 1.2
+}
+
+skinparam rectangle {
+    BorderColor black
+    BackgroundColor white
+    FontColor black
+    FontStyle bold
+    FontSize 13
+    BorderThickness 2
+}
+
+title "Figure 3: Level 1 Data Flow Diagram\nTransactional Payment Processing Streams\nSecure Multi-Tenant Digital Tontine Management System"
+
+actor "Member\nEntity" as Member
+actor "President\nEntity" as President
+
+rectangle "Digital Tontine Management System" {
+
+    component "Process 1.0\nAuthenticate\nSession" as P1
+    component "Process 2.0\nProcess\nContribution" as P2
+    component "Process 3.0\nUpdate Isolated\nLedger" as P3
+
+    database "DS1: Members\nTable" as DS1
+    database "DS2: Transaction\nLogs" as DS2
+    database "DS3: Group Rules\nMatrix" as DS3
+
+}
+
+Member --> P1 : Credential Inputs\n(phone, password, JWT)
+P1 --> DS1 : Verify Member\nIdentity Record
+DS1 --> P1 : Return Auth\nStatus and Role
+P1 --> Member : Issue Authenticated\nSession Token
+
+Member --> P2 : Dispatch Deposit Call\n(amount, group_id,\npayment_type)
+P2 --> DS3 : Read Configuration\nConstraints\n(fixed_amount, frequency)
+DS3 --> P2 : Return Group\nBylaw Parameters
+P2 --> DS2 : Commit Transaction\nLog Entry\n(gateway_ref, status)
+DS2 --> P2 : Confirm Ledger\nWrite Success
+
+DS2 --> P3 : Synchronize\nTransaction Records
+P3 --> DS2 : Update Balance\nand Round Status
+P3 --> President : Pipe Real-Time\nBalance Metrics\nand Audit Report
+
+@enduml

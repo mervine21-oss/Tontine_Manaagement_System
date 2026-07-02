@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DigiTon — Group Detail</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <button class="btn-back" onclick="window.location.href='http://localhost:8080/dashboard.html'">← Dashboard</button>
+    <div class="navbar-brand">
+        <div class="logo">🏦</div>
+        <span>DigiTon</span>
+    </div>
+    <div class="navbar-user">
+        <div class="avatar" id="user-avatar">?</div>
+        <span id="user-name">...</span>
+    </div>
+</nav>
+
+<div class="container">
+    <div id="alert-container"></div>
+
+    <div class="page-header">
+        <div class="page-header-left">
+            <h2 id="group-title">Loading...</h2>
+            <p id="group-desc" style="color:#71717a; font-size:14px"></p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-primary" id="pay-btn" onclick="handlePay()">💰 Make Payment</button>
+        </div>
+    </div>
+
+    <div class="stat-grid" id="stat-grid">
+        <div class="loading"><div class="spinner"></div></div>
+    </div>
+
+    <div id="invite-box" style="display:none" class="invite-box">
+        <div>
+            <div class="invite-label">🔗 Group Invite Code</div>
+            <div class="invite-code" id="invite-code-value">--------</div>
+            <div class="invite-hint">Share this code with members to join DigiTon</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="copyInviteCode()">📋 Copy Code</button>
+    </div>
+
+    <div id="admin-controls" style="display:none" class="controls-card">
+        <h3>⚙️ Admin Controls</h3>
+        <div class="controls-btn-group">
+            <button class="btn btn-success" id="start-cycle-btn" onclick="handleStartCycle()">▶ Start Cycle</button>
+            <button class="btn btn-outline" id="assign-slots-btn" style="display:none" onclick="handleAssignSlots()">🎲 Assign Slots</button>
+        </div>
+    </div>
+
+    <div class="tabs-card">
+        <div class="tab-header">
+            <button class="tab-btn active" onclick="switchTab('members')">👥 Members</button>
+            <button class="tab-btn" onclick="switchTab('transactions')">📋 Transactions</button>
+        </div>
+        <div class="tab-content">
+            <div class="tab-panel active" id="tab-members">
+                <div id="members-list">
+                    <div class="loading"><div class="spinner"></div>Loading members...</div>
+                </div>
+            </div>
+            <div class="tab-panel" id="tab-transactions">
+                <div id="transactions-list">
+                    <div class="loading"><div class="spinner"></div>Loading transactions...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+    var token = localStorage.getItem('token');
+    if (!token) {
+        window.location.href = 'http://localhost:8080/index.html';
+    }
+
+    var params = new URLSearchParams(window.location.search);
+    var groupId = params.get('id');
+
+    if (!groupId) {
+        window.location.href = 'http://localhost:8080/dashboard.html';
+    }
+
+    var user = getUser();
+    var currentGroup = null;
+    var currentCycleId = null;
+
+    document.getElementById('user-name').textContent = user.full_name || 'User';
+    document.getElementById('user-avatar').textContent = getInitials(user.full_name);
+
+    function renderStats(group, walletData) {
+        document.getElementById('stat-grid').innerHTML = [
+            '<div class="stat-card dark">',
+            '<div class="stat-label">👥 Members</div>',
+            '<div class="stat-value dark">' + group.current_member_count + '<span style="font-size:16px;font-weight:400;color:#71717a">/' + group.max_members + '</span></div>',
+            '<div class="stat-unit">' + group.available_seats + ' seats left</div>',
+            '</div>',
+            '<div class="stat-card purple">',
+            '<div class="stat-label">💰 Contribution</div>',
+            '<div class="stat-value purple">' + Number(group.contribution_amount || 0).toLocaleString() + '</div>',
+            '<div class="stat-unit">XAF / ' + group.contribution_frequency + '</div>',
+            '</div>',
+            '<div class="stat-card green">',
+            '<div class="stat-label">🔄 Rotational</div>',
+            '<div class="stat-value green">' + Number(walletData.wallets && walletData.wallets.rotational ? walletData.wallets.rotational.balance : 0).toLocaleString() + '</div>',
+            '<div class="stat-unit">XAF balance</div>',
+            '</div>',
+            '<div class="stat-card magenta">',
+            '<div class="stat-label">💎 Savings</div>',
+            '<div class="stat-value magenta">' + Number(walletData.wallets && walletData.wallets.savings ? walletData.wallets.savings.balance : 0).toLocaleString() + '</div>',
+            '<div class="stat-unit">XAF ' + (walletData.wallets && walletData.wallets.savings && walletData.wallets.savings.is_locked ? '🔒 Locked' : 'Available') + '</div>',
+            '</div>'
+        ].join('');
+    }
+
+    function renderMembers(memberList) {
+        var members = Array.isArray(memberList) ? memberList : [];
+        if (members.length === 0) {
+            document.getElementById('members-list').innerHTML = '<div class="empty-state"><div class="icon">👥</div><h3>No members yet</h3><p>Share the invite code to add members</p></div>';
+            return;
+        }
+
+        document.getElementById('members-list').innerHTML = members.map(function(member) {
+            return '<div class="list-item"><div class="list-item-left"><div class="list-avatar">' + getInitials(member.full_name) + '</div><div><div class="list-name">' + member.full_name + (member.is_admin ? '<span class="badge badge-admin" style="margin-left:6px">👑 Admin</span>' : '') + '</div><div class="list-sub">' + member.phone_msisdn + ' · ' + member.telecom_operator + '</div><div class="list-sub">Wallet: ' + formatAmount(member.rotational_balance) + '</div></div></div><div class="list-right"><span class="badge ' + getBadgeClass(member.member_status) + '">' + member.member_status + '</span><div class="list-sub" style="margin-top:6px">Collateral: ' + formatAmount(member.collateral_balance) + '</div></div></div>';
+        }).join('');
+    }
+
+    function renderTransactions(txnList) {
+        var transactions = Array.isArray(txnList) ? txnList : [];
+        if (transactions.length === 0) {
+            document.getElementById('transactions-list').innerHTML = '<div class="empty-state"><div class="icon">📋</div><h3>No transactions yet</h3><p>Transactions will appear here after contributions</p></div>';
+            return;
+        }
+
+        document.getElementById('transactions-list').innerHTML = transactions.map(function(txn) {
+            var icon = txn.txn_type === 'contribution' ? '💳' : txn.txn_type === 'payout_disbursement' ? '🏆' : '💰';
+            var background = txn.txn_type === 'contribution' ? 'linear-gradient(135deg,#16a34a,#15803d)' : txn.txn_type === 'payout_disbursement' ? 'linear-gradient(135deg,#9333ea,#c026d3)' : 'linear-gradient(135deg,#dc2626,#b91c1c)';
+            var refLine = txn.gateway_ref ? '<div class="list-sub">Ref: ' + txn.gateway_ref + '</div>' : '';
+            return '<div class="list-item"><div class="list-item-left"><div class="list-avatar" style="background:' + background + '">' + icon + '</div><div><div class="list-name" style="text-transform:capitalize">' + String(txn.txn_type || '').replace(/_/g, ' ') + '</div><div class="list-sub">' + formatDate(txn.created_at) + '</div>' + refLine + '</div></div><div class="list-right"><div class="list-amount">' + formatAmount(txn.amount) + '</div><span class="badge ' + getBadgeClass(txn.status) + '" style="margin-top:4px">' + txn.status + '</span></div></div>';
+        }).join('');
+    }
+
+    function switchTab(tab) {
+        var buttons = document.querySelectorAll('.tab-btn');
+        for (var i = 0; i < buttons.length; i++) {
+            var button = buttons[i];
+            button.classList.toggle('active', (i === 0 && tab === 'members') || (i === 1 && tab === 'transactions'));
+        }
+        document.getElementById('tab-members').classList.toggle('active', tab === 'members');
+        document.getElementById('tab-transactions').classList.toggle('active', tab === 'transactions');
+    }
+
+    function copyInviteCode() {
+        var code = document.getElementById('invite-code-value').textContent;
+        navigator.clipboard.writeText(code).then(function() {
+            showAlert('alert-container', '✅ Invite code copied!', 'success');
+            setTimeout(function() {
+                clearAlert('alert-container');
+            }, 3000);
+        }).catch(function() {
+            showAlert('alert-container', 'Unable to copy invite code.', 'error');
+        });
+    }
+
+    function loadGroupData() {
+        clearAlert('alert-container');
+
+        groups.getOne(groupId).then(function(groupResponse) {
+            return Promise.all([
+                Promise.resolve(groupResponse),
+                groups.getMembers(groupId),
+                wallets.getBalances(groupId),
+                wallets.getTransactions(groupId)
+            ]);
+        }).then(function(results) {
+            var groupResponse = results[0];
+            var membersResponse = results[1];
+            var walletsResponse = results[2];
+            var transactionsResponse = results[3];
+
+            currentGroup = groupResponse.data.group;
+            var memberList = membersResponse.data.members || [];
+            var walletData = walletsResponse.data;
+            var transactionList = transactionsResponse.data.transactions || [];
+
+            document.getElementById('group-title').textContent = currentGroup.group_name;
+            document.getElementById('group-desc').textContent = currentGroup.description || '';
+            document.title = currentGroup.group_name + ' — DigiTon';
+            renderStats(currentGroup, walletData);
+
+            var isAdmin = currentGroup.admin_user_id === user.id;
+            if (isAdmin) {
+                document.getElementById('invite-box').style.display = 'flex';
+                document.getElementById('invite-code-value').textContent = currentGroup.invite_code;
+                document.getElementById('admin-controls').style.display = 'block';
+
+                if (currentGroup.is_config_locked) {
+                    var startButton = document.getElementById('start-cycle-btn');
+                    startButton.textContent = '✅ Cycle Active';
+                    startButton.disabled = true;
+                    startButton.className = 'btn btn-secondary';
+                    document.getElementById('assign-slots-btn').style.display = 'inline-flex';
+                }
+            }
+
+            renderMembers(memberList);
+            renderTransactions(transactionList);
+        }).catch(function(error) {
+            showAlert('alert-container', error.message, 'error');
+        });
+    }
+
+    function handleStartCycle() {
+        var startButton = document.getElementById('start-cycle-btn');
+        startButton.disabled = true;
+        startButton.textContent = 'Starting...';
+
+        disbursement.startCycle(groupId).then(function(response) {
+            currentCycleId = response.data.cycle.id;
+            showAlert('alert-container', '✅ Cycle started! Now assign payout slots.', 'success');
+            document.getElementById('assign-slots-btn').style.display = 'inline-flex';
+            startButton.textContent = '✅ Cycle Active';
+            startButton.className = 'btn btn-secondary';
+        }).catch(function(error) {
+            showAlert('alert-container', error.message, 'error');
+            startButton.disabled = false;
+            startButton.textContent = '▶ Start Cycle';
+        });
+    }
+
+    function handleAssignSlots() {
+        if (!currentCycleId) {
+            showAlert('alert-container', 'Please start a cycle first.', 'error');
+            return;
+        }
+
+        var assignButton = document.getElementById('assign-slots-btn');
+        assignButton.disabled = true;
+        assignButton.textContent = 'Assigning...';
+
+        disbursement.assignSlots(groupId, currentCycleId).then(function() {
+            showAlert('alert-container', '✅ Payout slots assigned!', 'success');
+            loadGroupData();
+        }).catch(function(error) {
+            showAlert('alert-container', error.message, 'error');
+        }).finally(function() {
+            assignButton.disabled = false;
+            assignButton.textContent = '🎲 Assign Slots';
+        });
+    }
+
+    function handlePay() {
+        window.location.href = 'http://localhost:8080/contribute.html?id=' + groupId;
+    }
+
+    if (groupId) {
+        loadGroupData();
+    }
+</script>
+
+</body>
+</html>

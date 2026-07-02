@@ -1,0 +1,60 @@
+@startuml Tontine_Contribution_Activity_Diagram
+
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam backgroundColor white
+skinparam handwritten false
+
+skinparam activity {
+    BorderColor black
+    BackgroundColor white
+    FontColor black
+    FontSize 11
+    BorderThickness 1.5
+    DiamondBorderColor black
+    DiamondBackgroundColor white
+    DiamondFontColor black
+    DiamondFontSize 11
+    ArrowColor black
+    ArrowFontColor black
+    ArrowFontSize 10
+    StartColor black
+    EndColor black
+}
+
+title "Activity Diagram: Cyclic Contribution Payment Logic Loop\nSecure Multi-Tenant Digital Tontine Management System"
+
+start
+
+:Member triggers "Pay Contribution";
+
+if (Is the designated group round currently open?) then (yes)
+
+    :Invoke external mobile money\nAPI gateway;
+
+    if (Does network transaction return\nsuccess code?) then (yes)
+
+        :Capture precise digital\ncurrency values;
+        :Apply multi-tenant isolation\nvia Group UUID;
+        :Append transaction to ledger\nand increment global pool balance;
+        :Push real-time notification card\nto President dashboard;
+        :Render financial receipt output\nonto member device layout screen;
+
+    else (no)
+
+        :Log "Failed Transaction" state\nto audit logs;
+        :Dispatch push alert to member\ninterface to retry;
+
+    endif
+
+else (no)
+
+    :Display "Round Closed"\nexception error message;
+
+endif
+
+stop
+
+@enduml

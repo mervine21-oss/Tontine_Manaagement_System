@@ -1,0 +1,112 @@
+@startuml Tontine_Class_Diagram
+
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam backgroundColor white
+skinparam handwritten false
+
+skinparam class {
+    BorderColor black
+    BackgroundColor white
+    FontColor black
+    FontSize 11
+    BorderThickness 1.5
+    AttributeFontColor black
+    AttributeFontSize 11
+    StereotypeFontColor black
+    StereotypeFontSize 10
+    HeaderBackgroundColor white
+    HeaderFontColor black
+    HeaderFontStyle bold
+    HeaderFontSize 12
+}
+
+skinparam arrow {
+    Color black
+    FontColor black
+    FontSize 10
+    Thickness 1.2
+}
+
+skinparam note {
+    BorderColor black
+    BackgroundColor white
+    FontColor black
+    FontSize 10
+}
+
+title "Class Diagram: Backend Domain Object Model\nSecure Multi-Tenant Digital Tontine Management System"
+
+class User {
+    - userID : UUID
+    - fullName : String
+    - phoneNumber : String
+    - role : Enum
+    __
+    + login() : void
+    + joinGroup() : void
+}
+
+class TontineGroup {
+    - groupID : UUID
+    - groupName : String
+    - presidentID : UUID
+    - maxMembers : int
+    __
+    + calculatePoolBalance() : Decimal
+    + cycleNextRound() : void
+}
+
+class GroupRules {
+    - ruleID : UUID
+    - groupID : UUID
+    - contributionAmt : Decimal
+    - cycleFrequency : Enum
+    - payoutMethod : Enum
+}
+
+class Transaction {
+    - transactionID : UUID
+    - memberID : UUID
+    - groupID : UUID
+    - amountPaid : Decimal
+    - status : Enum
+    __
+    + validateGatewaySignature() : boolean
+}
+
+User "1" --> "0..*" TontineGroup : manages (as President)
+TontineGroup "1" *-- "1" GroupRules : dictates operational bounds
+TontineGroup "1" o-- "0..*" Transaction : history logs
+
+note bottom of User
+  role Enum values:
+  PRESIDENT, MEMBER,
+  SUPER_ADMIN
+end note
+
+note bottom of GroupRules
+  cycleFrequency Enum:
+  WEEKLY, BIWEEKLY,
+  MONTHLY
+  payoutMethod Enum:
+  ROTATION, BIDDING
+end note
+
+note bottom of Transaction
+  status Enum values:
+  PENDING, SUCCESSFUL,
+  FAILED, REVERSED
+end note
+
+note bottom of TontineGroup
+  calculatePoolBalance()
+  returns fixed_amount
+  multiplied by maxMembers
+  minus 15% collateral
+  reserve buffer.
+end note
+
+@enduml

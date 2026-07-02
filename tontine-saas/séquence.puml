@@ -1,0 +1,69 @@
+@startuml Tontine_Sequence_Diagram
+
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam backgroundColor white
+skinparam handwritten false
+
+skinparam sequence {
+    ArrowColor black
+    ArrowThickness 1.2
+    ActorBorderColor black
+    ActorBackgroundColor white
+    ActorFontColor black
+    ActorFontStyle bold
+    ActorFontSize 12
+    LifeLineBorderColor black
+    LifeLineBorderThickness 1
+    LifeLineBackgroundColor white
+    ParticipantBorderColor black
+    ParticipantBackgroundColor white
+    ParticipantFontColor black
+    ParticipantFontSize 12
+    ParticipantFontStyle bold
+    BoundaryBorderColor black
+    BoundaryBackgroundColor white
+    BoundaryFontColor black
+    BoundaryFontStyle bold
+    ControlBorderColor black
+    ControlBackgroundColor white
+    ControlFontColor black
+    ControlFontStyle bold
+    DatabaseBorderColor black
+    DatabaseBackgroundColor white
+    DatabaseFontColor black
+    DatabaseFontStyle bold
+    NoteBackgroundColor white
+    NoteBorderColor black
+    NoteFontColor black
+    NoteFontSize 10
+    ArrowFontColor black
+    ArrowFontSize 10
+}
+
+autonumber
+
+actor "President" as Pres
+boundary "UI Dashboard" as UI
+control "Controller API" as API
+database "Database Node" as DB
+
+Pres -> UI : Input Group Name and Custom\nBylaws (Click Create Group)
+
+UI -> API : POST /api/v1/groups\n(Payload Data)
+activate API
+
+API -> DB : Validate Tenant, Write\nRules and Generate UUID
+activate DB
+
+DB --> API : Confirm Record\nCreation Success
+deactivate DB
+
+API --> UI : Return HTTP 201 Created\nand Unique Invite URL
+deactivate API
+
+UI --> Pres : Render Active Group Panel\nand Display Invitation Token
+
+@enduml

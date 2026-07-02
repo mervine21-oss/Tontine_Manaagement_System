@@ -1,0 +1,76 @@
+@startuml Tontine_ERD
+
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam backgroundColor white
+skinparam handwritten false
+skinparam linetype ortho
+
+skinparam entity {
+    BorderColor black
+    BackgroundColor white
+    FontColor black
+    FontSize 11
+    BorderThickness 1.5
+}
+
+skinparam class {
+    AttributeFontColor black
+    AttributeFontSize 11
+    HeaderBackgroundColor white
+    HeaderFontColor black
+    HeaderFontStyle bold
+    HeaderFontSize 12
+}
+
+skinparam arrow {
+    Color black
+    FontColor black
+    FontSize 10
+    Thickness 1.2
+}
+
+title "Entity-Relationship Diagram: Multi-Tenant Relational Schema\nSecure Digital Tontine Management System"
+
+entity "USER" as USER {
+    * userID : text <<PK>>
+    --
+    fullName : text
+    phoneNumber : text
+    role : text
+}
+
+entity "TONTINE_GROUP" as TONTINE_GROUP {
+    * groupID : text <<PK>>
+    --
+    groupName : text
+    maxMembers : text
+    presidentID : text <<FK>>
+}
+
+entity "GROUP_RULES" as GROUP_RULES {
+    * ruleID : text <<PK>>
+    --
+    contributionAmt : text
+    cycleFrequency : text
+    payoutMethod : text
+    groupID : text <<FK>>
+}
+
+entity "TRANSACTION" as TRANSACTION {
+    * transactionID : text <<PK>>
+    --
+    amountPaid : text
+    status : text
+    memberID : text <<FK>>
+    groupID : text <<FK>>
+}
+
+USER ||--o{ TONTINE_GROUP : "presides over"
+USER ||--o{ TRANSACTION : "submits"
+TONTINE_GROUP ||--|| GROUP_RULES : "configured by"
+TONTINE_GROUP ||--o{ TRANSACTION : "isolates"
+
+@enduml

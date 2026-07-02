@@ -1,0 +1,143 @@
+@startuml Tontine_Cycle_Activity_Diagram
+
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam backgroundColor white
+skinparam handwritten false
+
+skinparam activity {
+    BorderColor black
+    BackgroundColor white
+    FontColor black
+    FontSize 11
+    BorderThickness 1.5
+    DiamondBorderColor black
+    DiamondBackgroundColor white
+    DiamondFontColor black
+    DiamondFontSize 11
+    ArrowColor black
+    ArrowFontColor black
+    ArrowFontSize 10
+    StartColor black
+    EndColor black
+}
+
+skinparam note {
+    BorderColor black
+    BackgroundColor white
+    FontColor black
+    FontSize 10
+}
+
+skinparam partition {
+    BorderColor black
+    BackgroundColor white
+    FontColor black
+    FontStyle bold
+    FontSize 12
+}
+
+title "Activity Diagram: Multi-Tenant Contribution Cycle and\nAutomated Disbursement Workflow\nSecure Digital Tontine Management System"
+
+start
+
+:System receives contribution\nor cycle-check trigger;
+
+partition "Multi-Tenant Isolation Layer" {
+
+    :Resolve Group UUID from\nauthenticated session context;
+    :Fetch President's custom rules\nfrom GROUP_RULES table\n(contributionAmt, frequency,\npenaltyStructure, payoutMethod);
+
+    note right
+      All queries are scoped strictly
+      to the resolved Group UUID,
+      enforcing Row-Level Security
+      and preventing cross-tenant
+      data leakage.
+    end note
+
+}
+
+if (Is the action a Member\ncontribution submission?) then (yes)
+
+    partition "Contribution Tracking and Verification" {
+
+        :Validate member's active\nmembership status in group;
+
+        if (Is the rotation round\ncurrently open?) then (yes)
+
+            :Invoke Mobile Money / Orange\nMoney payment gateway;
+
+            if (Gateway returns\nSUCCESSFUL status?) then (yes)
+
+                :Verify gateway_ref uniqueness\n(idempotency guard);
+                :Commit transaction record\nto ledger under Group UUID;
+                :Update member's contribution\nstatus to PAID for current cycle;
+
+            else (no)
+
+                :Log "Failed Transaction"\nto audit trail;
+                :Notify member to retry\npayment;
+                stop
+
+            endif
+
+        else (no)
+
+            :Display "Round Closed"\nexception to member;
+            stop
+
+        endif
+
+    }
+
+else (no)
+
+endif
+
+partition "Automated Cycle and Penalty Engine" {
+
+    :Run scheduled cycle-check\n(cron job trigger);
+
+    if (Has cycle deadline\nelapsed for any member?) then (yes)
+
+        :Apply custom penalty/fine\nstructure defined by President;
+        :Append fine record to member's\nledger entry;
+        :Notify defaulting member\nof penalty applied;
+
+    else (no)
+
+    endif
+
+    if (Have all active members\nsettled contributions for\nthe current round?) then (yes)
+
+        :Calculate gross pot\n(fixed_amount x maxMembers);
+        :Compute 15% mandatory\ncollateral reserve buffer;
+        :Determine Net Disbursement\nPayout amount;
+        :Select next beneficiary based\non President's rotation order;
+        :Update RotationRound status\nto "DISBURSED";
+        :Credit beneficiary's isolated\nSavingsWallet;
+
+    else (no)
+
+        :Maintain round status\nas "OPEN" and await\nremaining contributions;
+        stop
+
+    endif
+
+}
+
+partition "Notification and Audit Logging" {
+
+    :Dispatch real-time disbursement\nnotification to beneficiary;
+    :Push updated pool balance card\nto President dashboard;
+    :Write immutable audit log entry\n(who, what, when, gateway_ref);
+    :Render updated financial summary\non member and president interfaces;
+
+}
+
+stop
+
+@enduml

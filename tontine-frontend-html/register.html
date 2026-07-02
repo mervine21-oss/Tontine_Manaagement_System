@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DigiTon — Create Account</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="auth-page">
+    <div class="auth-hero">
+        <div>
+            <div style="font-size:48px; margin-bottom:16px">🎉</div>
+            <h2>Join DigiTon Today</h2>
+            <p>Create your account and start managing your tontine savings groups digitally and securely.</p>
+            <div class="auth-hero-features">
+                <div class="auth-hero-feature">
+                    <span class="icon">⚡</span>
+                    <div>
+                        <div style="font-weight:600">Quick Setup</div>
+                        <div style="font-size:12px; opacity:0.8">Create a group in seconds</div>
+                    </div>
+                </div>
+                <div class="auth-hero-feature">
+                    <span class="icon">👥</span>
+                    <div>
+                        <div style="font-weight:600">Unlimited Groups</div>
+                        <div style="font-size:12px; opacity:0.8">Create or join as many as you want</div>
+                    </div>
+                </div>
+                <div class="auth-hero-feature">
+                    <span class="icon">📊</span>
+                    <div>
+                        <div style="font-weight:600">Full Transparency</div>
+                        <div style="font-size:12px; opacity:0.8">Track every transaction</div>
+                    </div>
+                </div>
+                <div class="auth-hero-feature">
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <div style="font-weight:600">Collateral Protection</div>
+                        <div style="font-size:12px; opacity:0.8">15% security buffer system</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="auth-form-side">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <div class="logo-icon">🏦</div>
+                <span class="logo-text">DigiTon</span>
+            </div>
+            <h1 class="auth-title">Create your account</h1>
+            <p class="auth-subtitle">Join thousands managing savings digitally</p>
+            <div id="alert-container"></div>
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" id="full_name" class="form-input" placeholder="Jean Paul Mbarga" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" id="email" class="form-input" placeholder="you@example.com" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Phone Number</label>
+                <input type="text" id="phone_msisdn" class="form-input" placeholder="+237671234567" />
+                <small style="font-size:11px; color:#a1a1aa; margin-top:4px; display:block">Format: +237 followed by your number</small>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Mobile Money Operator</label>
+                <select id="telecom_operator" class="form-input">
+                    <option value="">Select your operator</option>
+                    <option value="mtn_momo">📱 MTN Mobile Money</option>
+                    <option value="orange_money">🟠 Orange Money</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" id="password" class="form-input" placeholder="Min 8 chars, uppercase, lowercase, number" />
+                <small style="font-size:11px; color:#a1a1aa; margin-top:4px; display:block">Example: Password1</small>
+            </div>
+            <button type="button" class="btn btn-primary btn-full btn-lg" id="submit-btn" style="margin-top:8px" onclick="handleRegister()">
+                Create Account
+            </button>
+            <div class="auth-link">
+                Already have an account?
+                <button type="button" class="btn-link" onclick="window.location.href='http://localhost:8080/index.html'">Sign in</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+    var token = localStorage.getItem('token');
+    if (token) {
+        window.location.href = 'http://localhost:8080/dashboard.html';
+    }
+
+    function handleRegister() {
+        clearAlert('alert-container');
+
+        var fullName = document.getElementById('full_name').value.trim();
+        var email = document.getElementById('email').value.trim();
+        var phone = document.getElementById('phone_msisdn').value.trim();
+        var operator = document.getElementById('telecom_operator').value;
+        var password = document.getElementById('password').value;
+
+        if (!fullName || !email || !phone || !operator || !password) {
+            showAlert('alert-container', 'Please complete all fields.', 'error');
+            return;
+        }
+
+        var button = document.getElementById('submit-btn');
+        button.disabled = true;
+        button.textContent = 'Creating account...';
+
+        auth.register({
+            full_name: fullName,
+            email: email,
+            phone_msisdn: phone,
+            telecom_operator: operator,
+            password: password
+        }).then(function(response) {
+            var tokenValue = response.data.token;
+            var user = response.data.user;
+
+            if (!tokenValue) {
+                throw new Error('Registration failed. Please try again.');
+            }
+
+            localStorage.setItem('token', tokenValue);
+            localStorage.setItem('user', JSON.stringify(user));
+            window.location.href = 'http://localhost:8080/dashboard.html';
+        }).catch(function(error) {
+            showAlert('alert-container', error.message, 'error');
+            button.disabled = false;
+            button.textContent = 'Create Account';
+        });
+    }
+</script>
+
+</body>
+</html>

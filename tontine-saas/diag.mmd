@@ -1,0 +1,100 @@
+@startuml Digital_Tontine_Use_Case_Diagram
+
+skinparam monochrome true
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam shadowing false
+skinparam handwritten false
+
+skinparam actor {
+    BorderColor Black
+    BackgroundColor White
+    FontStyle Bold
+    FontSize 12
+}
+
+skinparam usecase {
+    BorderColor Black
+    BackgroundColor White
+    FontSize 11
+    ArrowColor Black
+}
+
+skinparam rectangle {
+    BorderColor Black
+    BackgroundColor White
+    FontStyle Bold
+    FontSize 13
+}
+
+title "Figure 1: Global Functional Use Case Diagram\nSecure Multi-Tenant Digital Tontine Management System (SaaS)"
+
+left to right direction
+
+actor "Group President\n(Administrator)" as President
+actor "Group Member" as Member
+actor "Platform\nSuper-Admin" as SuperAdmin
+
+rectangle "Digital Tontine Management Platform" {
+
+    package "Group Administration Module" {
+        usecase "Create Unlimited Groups" as UC1
+        usecase "Configure Custom\nRules / Bylaws" as UC2
+        usecase "Manage Cycles\n& Members" as UC3
+    }
+
+    package "Member Operations Module" {
+        usecase "View Personal\nLedger" as UC4
+        usecase "Process Contribution\nPayment" as UC5
+    }
+
+    package "Platform Oversight Module" {
+        usecase "Monitor Platform\nMetrics" as UC6
+    }
+
+    package "Shared Authentication Layer" {
+        usecase "Authenticate User\n(JWT Login)" as UC7
+    }
+}
+
+President --> UC1
+President --> UC2
+President --> UC3
+President --> UC7
+
+Member --> UC4
+Member --> UC5
+Member --> UC7
+
+SuperAdmin --> UC6
+SuperAdmin --> UC7
+
+UC2 .> UC1 : <<extend>>
+UC5 .> UC4 : <<include>>
+
+UC1 .> UC7 : <<include>>
+UC5 .> UC7 : <<include>>
+UC6 .> UC7 : <<include>>
+
+note right of UC1
+  Group President may create
+  an unlimited number of
+  isolated tontine groups
+  under a single account.
+end note
+
+note right of UC5
+  All contribution payments
+  are processed via MTN MoMo
+  or Orange Money gateway
+  with webhook verification.
+end note
+
+note right of UC6
+  Super-Admin monitors
+  global transaction audit
+  ledger and platform-wide
+  financial metrics.
+end note
+
+@enduml

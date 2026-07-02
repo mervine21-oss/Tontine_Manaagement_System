@@ -1,0 +1,69 @@
+
+erDiagram
+
+    USERS {
+        UUID        user_id         PK
+        VARCHAR     fullname
+        VARCHAR     phone_number    UK
+        VARCHAR     email           UK
+        TEXT        password_hash
+        TIMESTAMP   created_at
+    }
+
+    GROUPS {
+        UUID        group_id        PK
+        VARCHAR     group_name
+        UUID        admin_id        FK
+        INT         max_members
+        VARCHAR     frequency
+        DECIMAL     fixed_amount
+        TIMESTAMP   created_at
+    }
+
+    MEMBERSHIPS {
+        INT         membership_id   PK
+        UUID        user_id         FK
+        UUID        group_id        FK
+        TIMESTAMP   joined_at
+        VARCHAR     status
+    }
+
+    SAVINGS_WALLETS {
+        UUID        wallet_id       PK
+        UUID        user_id         FK
+        UUID        group_id        FK
+        DECIMAL     total_saved
+        TIMESTAMP   last_updated
+    }
+
+    ROTATION_ROUNDS {
+        UUID        round_id        PK
+        UUID        group_id        FK
+        DATE        start_date
+        DATE        end_date
+        VARCHAR     status
+    }
+
+    TRANSACTIONS {
+        BIGINT      transaction_id  PK
+        INT         membership_id   FK
+        UUID        round_id        FK
+        DECIMAL     amount
+        VARCHAR     payment_type
+        VARCHAR     gateway_ref     UK
+        BOOLEAN     late_fee_paid
+        TIMESTAMP   executed_at
+    }
+
+    USERS ||--o{ GROUPS        : "presides over (admin_id)"
+    USERS ||--o{ MEMBERSHIPS   : "enrolled in"
+    USERS ||--o{ SAVINGS_WALLETS : "owns"
+
+    GROUPS ||--o{ MEMBERSHIPS   : "contains"
+    GROUPS ||--o{ SAVINGS_WALLETS : "partitions"
+    GROUPS ||--o{ ROTATION_ROUNDS : "schedules"
+
+    MEMBERSHIPS ||--o{ TRANSACTIONS : "generates"
+
+    ROTATION_ROUNDS ||--o{ TRANSACTIONS : "records"
+

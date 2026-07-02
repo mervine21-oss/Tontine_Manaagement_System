@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DigiTon — Login</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="auth-page">
+    <div class="auth-hero">
+        <div>
+            <div style="font-size:48px; margin-bottom:16px">🏦</div>
+            <h2>Welcome to DigiTon</h2>
+            <p>The secure digital platform for managing your tontine savings groups with confidence.</p>
+            <div class="auth-hero-features">
+                <div class="auth-hero-feature">
+                    <span class="icon">🔒</span>
+                    <div>
+                        <div style="font-weight:600">Bank-level Security</div>
+                        <div style="font-size:12px; opacity:0.8">JWT auth + encrypted data</div>
+                    </div>
+                </div>
+                <div class="auth-hero-feature">
+                    <span class="icon">💰</span>
+                    <div>
+                        <div style="font-weight:600">Dual Wallet System</div>
+                        <div style="font-size:12px; opacity:0.8">Rotational + Savings wallets</div>
+                    </div>
+                </div>
+                <div class="auth-hero-feature">
+                    <span class="icon">📱</span>
+                    <div>
+                        <div style="font-weight:600">Mobile Money</div>
+                        <div style="font-size:12px; opacity:0.8">MTN MoMo + Orange Money</div>
+                    </div>
+                </div>
+                <div class="auth-hero-feature">
+                    <span class="icon">🤖</span>
+                    <div>
+                        <div style="font-weight:600">Auto Late Fees</div>
+                        <div style="font-size:12px; opacity:0.8">Automated penalty system</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="auth-form-side">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <div class="logo-icon">🏦</div>
+                <span class="logo-text">DigiTon</span>
+            </div>
+            <h1 class="auth-title">Welcome back</h1>
+            <p class="auth-subtitle">Sign in to manage your tontine groups</p>
+            <div id="alert-container"></div>
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" id="email" class="form-input" placeholder="you@example.com" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" id="password" class="form-input" placeholder="••••••••" />
+            </div>
+            <button type="button" class="btn btn-primary btn-full btn-lg" id="submit-btn" style="margin-top:8px" onclick="handleLogin()">
+                Sign In
+            </button>
+            <div class="auth-link">
+                Don't have an account?
+                <button type="button" class="btn-link" onclick="window.location.href='http://localhost:8080/register.html'">Create one free</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+    var token = localStorage.getItem('token');
+    if (token) {
+        window.location.href = 'http://localhost:8080/dashboard.html';
+    }
+
+    function handleLogin() {
+        clearAlert('alert-container');
+
+        var email = document.getElementById('email').value.trim();
+        var password = document.getElementById('password').value.trim();
+
+        if (!email || !password) {
+            showAlert('alert-container', 'Please enter your email and password.', 'error');
+            return;
+        }
+
+        var button = document.getElementById('submit-btn');
+        button.disabled = true;
+        button.textContent = 'Signing in...';
+
+        auth.login({ email: email, password: password }).then(function(response) {
+            var tokenValue = response.data.token;
+            var user = response.data.user;
+
+            if (!tokenValue) {
+                throw new Error('No token received. Please try again.');
+            }
+
+            localStorage.setItem('token', tokenValue);
+            localStorage.setItem('user', JSON.stringify(user));
+            window.location.href = 'http://localhost:8080/dashboard.html';
+        }).catch(function(error) {
+            showAlert('alert-container', error.message, 'error');
+            button.disabled = false;
+            button.textContent = 'Sign In';
+        });
+    }
+</script>
+
+</body>
+</html>
